@@ -23,3 +23,8 @@
 .quick-success{margin-top:16px;padding:15px 16px;border-radius:12px;background:#eef7ff;color:#315a8f;font-size:12px;line-height:1.65}
 @media(max-width:1100px){.stats{grid-template-columns:1fr 1fr}}
 @media(max-width:760px){.quick-modal{padding:14px}.quick-modal-card{padding:20px;border-radius:20px}.quick-modal-actions{grid-template-columns:1fr}.stats{grid-template-columns:1fr 1fr}.quick-modal-head h3{font-size:23px}}
+
+.header-brand{display:flex;flex-direction:column;align-items:flex-start;gap:3px}
+.header-brand .brand{line-height:1}
+.header-brand-subtitle{font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);font-weight:700;margin-left:49px;white-space:nowrap}
+@media(max-width:760px){.header-brand-subtitle{font-size:8px;margin-left:42px;letter-spacing:.12em}}
