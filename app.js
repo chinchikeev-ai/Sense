@@ -42,10 +42,8 @@ function home(){return `<main class="home-main">
     </div>
 
     <div class="hero-visual">
-    <div class="float-card origin-card">${icon('pin')}<div><strong><span data-origin>${state.origin}</span> → Россия</strong><small>Точка отправления выбрана сверху</small></div></div>
-    <div class="float-card process-card">
-      ${[['weight','Забор груза'],['file','Оформление'],['ship','Перевозка'],['truck','Доставка до двери']].map(([i,t])=>`<div>${icon(i)}<span>${t}</span></div>`).join('')}
-    </div>
+    
+    
     <div class="float-card sea-card">${icon('ship')}<div><strong>Международная доставка</strong><small>Маршрут под параметры груза</small></div></div>
     </div>
   </div>
