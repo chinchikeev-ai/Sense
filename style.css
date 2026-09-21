@@ -74,3 +74,29 @@
  .home-page .hero-visual .process-card{display:none}
  .home-page .sea-card{justify-self:end}
 }
+
+
+/* Tighten homepage vertical rhythm by ~15% */
+.home-page .hero{min-height:85vh}
+.home-page .hero-inner{min-height:85vh;padding-top:145px;padding-bottom:58px}
+.home-screen{min-height:85vh}
+.home-screen-inner{padding-top:74px;padding-bottom:74px}
+.home-page .hero-bottom{margin-top:58px}
+
+@media (min-width:1600px){
+  .home-page .hero{min-height:918px}
+  .home-page .hero-inner{min-height:918px}
+  .home-screen{min-height:918px}
+}
+
+@media (max-width:1200px){
+  .home-page .hero,.home-page .hero-inner,.home-screen{min-height:auto}
+  .home-page .hero-inner{padding-top:128px;padding-bottom:50px}
+  .home-screen-inner{padding-top:64px;padding-bottom:64px}
+}
+
+@media (max-width:760px){
+  .home-page .hero{min-height:820px}
+  .home-page .hero-inner{min-height:820px;padding-top:34px;padding-bottom:34px}
+  .home-screen-inner{padding-top:46px;padding-bottom:46px}
+}
