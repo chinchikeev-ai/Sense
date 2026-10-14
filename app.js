@@ -4,7 +4,8 @@ const cities=['Гуанчжоу','Иу','Шэньчжэнь','Шанхай'], de
 const defaults={origin:'Гуанчжоу',destination:'Москва',weight:120,volume:.8,tnved:'',cargoName:'',method:'auto'};
 const params=new URLSearchParams(location.search);const state={...defaults};for(const k of Object.keys(state)){if(params.has(k))state[k]=params.get(k)}if(!cities.includes(state.origin))state.origin=defaults.origin;if(!destinations.includes(state.destination))state.destination=defaults.destination;for(const k of ['weight','volume']){state[k]=Number(state[k]);if(!Number.isFinite(state[k])||state[k]<=0)state[k]=defaults[k]}
 const page=location.pathname.endsWith('calculator.html')?'calculator':location.pathname.endsWith('order.html')?'order':'home';
-if(!['auto','rail','sea'].includes(state.method))state.method='auto';
+if(state.method==='sea')state.method='sea20';
+if(!['auto','rail','sea20','sea40'].includes(state.method))state.method='auto';
 document.body.classList.add(page+'-page');
 const $=s=>document.querySelector(s);const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));const money=n=>n==null?'По запросу':Number(n).toLocaleString('ru-RU',{maximumFractionDigits:2})+' ₽';
 function chargeableWeight(s=state){return Math.max(+s.weight,+s.volume*167)}
@@ -26,7 +27,8 @@ function benefits(){return `<div class="section benefits">${[['truck','Разн�
 const deliveryMethods=[
   {id:'auto',label:'Авто',title:'Автомобильная доставка',description:'Перевозка груза автомобильным транспортом из Китая в Россию. Маршрут, пункты забора и доставки согласуются под ваш груз.'},
   {id:'rail',label:'ЖД',title:'Железнодорожная доставка',description:'Перевозка груза по железной дороге. Станции отправления и прибытия, а также доставка от станции до получателя согласуются при расчёте.'},
-  {id:'sea',label:'Море',title:'Морская доставка',description:'Перевозка груза морем между портами. Порт назначения и дальнейшая доставка по России подбираются под ваш маршрут.'}
+  {id:'sea20',label:'Море 20',title:'Морская доставка — Море 20',description:'Перевозка груза морем в 20-футовом контейнере. Порт назначения и дальнейшая доставка по России подбираются под ваш маршрут.'},
+  {id:'sea40',label:'Море 40',title:'Морская доставка — Море 40',description:'Перевозка груза морем в 40-футовом контейнере. Порт назначения и дальнейшая доставка по России подбираются под ваш маршрут.'}
 ];
 function transportTabs(prefix){return `<div class="transport-tabs" role="tablist" aria-label="Способ доставки">${deliveryMethods.map((m,i)=>`<button type="button" role="tab" id="${prefix}-tab-${m.id}" aria-controls="${prefix}-panel-${m.id}" aria-selected="${m.id===state.method}" tabindex="${m.id===state.method?0:-1}">${m.label}</button>`).join('')}</div>`}
 function transportPanels(prefix){return `<div class="transport-details">${deliveryMethods.map((m,i)=>`<section role="tabpanel" id="${prefix}-panel-${m.id}" aria-labelledby="${prefix}-tab-${m.id}" tabindex="0" ${m.id===state.method?'':'hidden'}><h4>${m.title}</h4><p>${m.description}</p><div class="transport-rates"><div><span>За 1 кг</span><strong data-rate-kg="${m.id}">По запросу</strong></div><div><span>За 1 м³</span><strong data-rate-m3="${m.id}">По запросу</strong></div></div><p class="transport-note"><span data-tariff-status>Загружаем тарифы…</span></p></section>`).join('')}</div>`}

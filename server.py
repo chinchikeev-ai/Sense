@@ -13,7 +13,7 @@ from pathlib import Path
 DATABASE = os.environ.get('SENSE_DATABASE', '/var/lib/sense/tariffs.sqlite')
 AUTH = json.loads(Path(os.environ.get('SENSE_AUTH', '/etc/sense/admin.json')).read_text())
 ORIGIN = os.environ.get('SENSE_ORIGIN', 'https://93.115.17.58')
-METHODS = {'auto', 'rail', 'sea'}
+METHODS = {'auto', 'rail', 'sea20', 'sea40'}
 
 
 @contextmanager
@@ -42,13 +42,18 @@ def initialize():
         if db.execute('SELECT revision FROM settings WHERE id=1').fetchone() is None:
             cities = [('Гуанчжоу', 1), ('Иу', .97), ('Шэньчжэнь', 1.05), ('Шанхай', 1.02)]
             destinations = [('Москва', 1), ('Краснодар', 1.1), ('Санкт-Петербург', 1.07), ('Новосибирск', .93), ('Челябинск', .96)]
-            methods = [('auto', 1, '18–25'), ('rail', .9, '25–35'), ('sea', .8, '35–50')]
+            methods = [('auto', 1, '18–25'), ('rail', .9, '25–35'), ('sea20', .8, '35–50'), ('sea40', .8, '35–50')]
             for method, factor, days in methods:
                 for origin, origin_factor in cities:
                     for destination, destination_factor in destinations:
                         multiplier = factor * origin_factor * destination_factor
                         db.execute('INSERT INTO tariffs (method,origin,destination,perKg,perM3,days,comment) VALUES (?,?,?,?,?,?,?)', (method, origin, destination, round(112 * multiplier, 2), round((167 * 112 + 4400) * multiplier, 2), days, f'Срок: {days} дней; вес: от 250 кг; объём: от 1 м³.'))
             db.execute('INSERT INTO settings VALUES (1,1)')
+        if db.execute("SELECT 1 FROM tariffs WHERE method='sea' LIMIT 1").fetchone():
+            for method in ('sea20', 'sea40'):
+                db.execute("INSERT OR IGNORE INTO tariffs (method,origin,destination,perKg,perM3,days,deliveryCost,comment) SELECT ?,origin,destination,perKg,perM3,days,deliveryCost,comment FROM tariffs WHERE method='sea'", (method,))
+            db.execute("DELETE FROM tariffs WHERE method='sea'")
+            db.execute('UPDATE settings SET revision=revision+1 WHERE id=1')
 
 
 def read_tariffs(db):

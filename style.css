@@ -178,3 +178,5 @@
 .admin-table td[data-field=deliveryCost]{min-width:175px}
 
 .admin-table td[data-field=comment]{min-width:270px}.admin-table textarea{min-height:82px;height:82px;padding:10px;font-size:13px;line-height:1.4}
+
+@media(max-width:760px){.home-calculator .transport-tabs,.calculator-page .transport-tabs{width:100%;margin-left:0}.home-calculator .transport-tabs button,.calculator-page .transport-tabs button{flex:1;padding:6px 8px;white-space:nowrap}}

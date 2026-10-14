@@ -1,5 +1,5 @@
 const body=document.querySelector('#tariffRows'),status=document.querySelector('#adminStatus'),save=document.querySelector('#saveRows');
-const methodNames={auto:'Авто',rail:'ЖД',sea:'Море'};
+const methodNames={auto:'Авто',rail:'ЖД',sea20:'Море 20',sea40:'Море 40'};
 const rowReferences=new WeakMap(),collator=new Intl.Collator('ru',{numeric:true,sensitivity:'base'});
 const filterIds=['filter','methodFilter','originFilter','destinationFilter'];
 let sortKey='origin',sortAscending=true;

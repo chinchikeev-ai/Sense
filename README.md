@@ -17,6 +17,6 @@ Each delivery method and origin/destination pair has separate RUB/kg and RUB/m³
 - Authentication: `/etc/sense/admin.json` (PBKDF2-SHA256 hash, user, salt, iterations). Credentials are never committed.
 - Nginx: `/etc/nginx/sites-available/sense-ip`; certificate: `/etc/letsencrypt/live/sense-ip/`.
 
-The API seeds 60 demo routes only when the database has never been initialized. Editing replaces the table in a transaction and uses a revision number to reject concurrent overwrites. Back up the database using SQLite's backup API before administrative changes or server maintenance.
+The API seeds 80 demo routes only when the database has never been initialized. Editing replaces the table in a transaction and uses a revision number to reject concurrent overwrites. Back up the database using SQLite's backup API before administrative changes or server maintenance.
 
 The website assets are `index.html`, `calculator.html`, `order.html`, `app.js`, `style.css`, `hero.jpg`, `admin.html`, and `admin.js`. Deploy `server.py` separately from the public website root. Restart the API after updating its source; activate the website release after the API starts successfully. Existing certbot scheduling and the Nginx reload hook renew the IP certificate automatically.
