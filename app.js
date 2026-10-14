@@ -74,7 +74,7 @@ function home(){return `<main class="home-main">
 
     <div class="home-calc-grid">
       <form class="panel home-calc-form reveal" id="homeCalcForm">
-        <div class="panel-head cargo-method-head"><h3>Маршрут и способ доставки</h3>${transportTabs('home-transport')}</div><div class="cargo-layout"><div class="cargo-route-block">${routeFields('home')}${transportPanels('home-transport')}</div><div class="cargo-product-block"><h3>Параметры груза</h3><div class="fields">
+        <div class="cargo-layout"><div class="panel cargo-route-block"><div class="panel-head cargo-method-head"><h3>Маршрут и способ доставки</h3>${transportTabs('home-transport')}</div>${routeFields('home')}${transportPanels('home-transport')}</div><div class="panel cargo-product-block"><h3>Грузы</h3><div class="fields">
           <div class="field">
             <label for="homeWeight">Вес</label>
             <div class="input-wrap"><input id="homeWeight" type="number" min=".01" max="10000000" step=".01" value="${state.weight}" required><span class="unit">кг</span></div>
