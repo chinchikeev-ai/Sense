@@ -14,6 +14,12 @@ DATABASE = os.environ.get('SENSE_DATABASE', '/var/lib/sense/tariffs.sqlite')
 AUTH = json.loads(Path(os.environ.get('SENSE_AUTH', '/etc/sense/admin.json')).read_text())
 ORIGIN = os.environ.get('SENSE_ORIGIN', 'https://93.115.17.58')
 METHODS = {'auto', 'rail', 'sea20', 'sea40'}
+METHOD_DEFAULTS = [
+    ('auto', 'Авто', 'Автомобильная доставка', 'Перевозка груза автомобильным транспортом из Китая в Россию. Маршрут согласуется под ваш груз.', ''),
+    ('rail', 'ЖД', 'Железнодорожная доставка', 'Перевозка груза по железной дороге. Станции и доставка до получателя согласуются при расчёте.', ''),
+    ('sea20', 'Море 20', 'Морская доставка — Море 20', 'Перевозка груза морем в 20-футовом контейнере. Порт и дальнейшая доставка подбираются под ваш маршрут.', ''),
+    ('sea40', 'Море 40', 'Морская доставка — Море 40', 'Перевозка груза морем в 40-футовом контейнере. Порт и дальнейшая доставка подбираются под ваш маршрут.', ''),
+]
 
 
 @contextmanager
@@ -31,6 +37,9 @@ def initialize():
     Path(DATABASE).parent.mkdir(parents=True, exist_ok=True)
     with connect() as db:
         db.execute('CREATE TABLE IF NOT EXISTS settings (id INTEGER PRIMARY KEY, revision INTEGER NOT NULL)')
+        db.execute('CREATE TABLE IF NOT EXISTS delivery_methods (id TEXT PRIMARY KEY, label TEXT NOT NULL, title TEXT NOT NULL, description TEXT NOT NULL, comment TEXT NOT NULL)')
+        db.executemany('INSERT OR IGNORE INTO delivery_methods VALUES (?,?,?,?,?)', METHOD_DEFAULTS)
+        db.execute('INSERT OR IGNORE INTO settings VALUES (2,1)')
         db.execute('CREATE TABLE IF NOT EXISTS tariffs (method TEXT NOT NULL, origin TEXT NOT NULL, destination TEXT NOT NULL, perKg REAL, perM3 REAL, days TEXT NOT NULL, PRIMARY KEY(method, origin, destination))')
         if 'deliveryCost' not in {row['name'] for row in db.execute('PRAGMA table_info(tariffs)')}:
             db.execute('ALTER TABLE tariffs ADD COLUMN deliveryCost REAL')
@@ -57,7 +66,32 @@ def initialize():
 
 
 def read_tariffs(db):
-    return {'revision': db.execute('SELECT revision FROM settings WHERE id=1').fetchone()[0], 'rows': [dict(row) for row in db.execute('SELECT * FROM tariffs ORDER BY method, origin, destination')]}
+    return {'revision': db.execute('SELECT revision FROM settings WHERE id=1').fetchone()[0], 'rows': [dict(row) for row in db.execute('SELECT * FROM tariffs ORDER BY method, origin, destination')], 'methods': read_methods(db)['rows']}
+
+
+def read_methods(db):
+    return {'revision': db.execute('SELECT revision FROM settings WHERE id=2').fetchone()[0], 'rows': [dict(db.execute('SELECT * FROM delivery_methods WHERE id=?', (item[0],)).fetchone()) for item in METHOD_DEFAULTS]}
+
+
+def validate_methods(payload):
+    rows = payload.get('rows')
+    if type(payload.get('revision')) is not int or not isinstance(rows, list) or len(rows) != len(METHODS):
+        raise ValueError('Заполните все способы доставки.')
+    result, seen = [], set()
+    for row in rows:
+        if not isinstance(row, dict) or not isinstance(row.get('id'), str) or row['id'] not in METHODS or row['id'] in seen:
+            raise ValueError('Проверьте способы доставки.')
+        clean = {'id': row['id']}
+        for key, limit in [('label', 40), ('title', 120), ('description', 2000), ('comment', 1000)]:
+            value = row.get(key, '')
+            if not isinstance(value, str) or len(value) > limit or any(ord(c) < 32 and c not in '\n\r' for c in value):
+                raise ValueError('Проверьте длину и содержание текстов.')
+            clean[key] = value.strip()
+        if not clean['label'] or not clean['title']:
+            raise ValueError('Название и заголовок обязательны.')
+        seen.add(row['id'])
+        result.append(clean)
+    return result
 
 
 def validate(payload):
@@ -122,18 +156,18 @@ class Handler(BaseHTTPRequestHandler):
         path = self.path.split('?', 1)[0]
         if path == '/api/auth':
             self.reply(200 if self.authorized() else 401)
-        elif path in ('/api/tariffs', '/api/admin/tariffs'):
+        elif path in ('/api/tariffs', '/api/admin/tariffs', '/api/methods', '/api/admin/methods'):
             if '/admin/' in path and not self.authorized():
                 self.reply(401, {'error': 'Войдите для редактирования.'})
                 return
             with connect() as db:
                 db.execute('BEGIN')
-                self.reply(200, read_tariffs(db))
+                self.reply(200, read_methods(db) if path.endswith('/methods') else read_tariffs(db))
         else:
             self.reply(404, {'error': 'Страница не найдена.'})
 
     def do_PUT(self):
-        if self.path != '/api/admin/tariffs':
+        if self.path not in ('/api/admin/tariffs', '/api/admin/methods'):
             self.reply(404)
             return
         if not self.authorized():
@@ -149,17 +183,22 @@ class Handler(BaseHTTPRequestHandler):
             payload = json.loads(self.rfile.read(length))
             if not isinstance(payload, dict):
                 raise ValueError('Некорректные данные.')
-            rows = validate(payload)
+            editing_methods = self.path.endswith('/methods')
+            rows = validate_methods(payload) if editing_methods else validate(payload)
             with connect() as db:
                 db.execute('BEGIN IMMEDIATE')
-                revision = db.execute('SELECT revision FROM settings WHERE id=1').fetchone()[0]
+                settings_id = 2 if editing_methods else 1
+                revision = db.execute('SELECT revision FROM settings WHERE id=?', (settings_id,)).fetchone()[0]
                 if payload['revision'] != revision:
                     self.reply(409, {'error': 'Таблица изменена в другой вкладке. Сохраните свои правки отдельно и перезагрузите страницу.'})
                     return
-                db.execute('DELETE FROM tariffs')
-                db.executemany('INSERT INTO tariffs (method,origin,destination,perKg,perM3,days,deliveryCost,comment) VALUES (:method,:origin,:destination,:perKg,:perM3,:days,:deliveryCost,:comment)', rows)
-                db.execute('UPDATE settings SET revision=revision+1 WHERE id=1')
-                response = read_tariffs(db)
+                if editing_methods:
+                    db.executemany('UPDATE delivery_methods SET label=:label,title=:title,description=:description,comment=:comment WHERE id=:id', rows)
+                else:
+                    db.execute('DELETE FROM tariffs')
+                    db.executemany('INSERT INTO tariffs (method,origin,destination,perKg,perM3,days,deliveryCost,comment) VALUES (:method,:origin,:destination,:perKg,:perM3,:days,:deliveryCost,:comment)', rows)
+                db.execute('UPDATE settings SET revision=revision+1 WHERE id=?', (settings_id,))
+                response = read_methods(db) if editing_methods else read_tariffs(db)
             self.reply(200, response)
         except (ValueError, json.JSONDecodeError) as exc:
             self.reply(400, {'error': str(exc)})

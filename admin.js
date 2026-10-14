@@ -1,5 +1,10 @@
 const body=document.querySelector('#tariffRows'),status=document.querySelector('#adminStatus'),save=document.querySelector('#saveRows');
 const methodNames={auto:'Авто',rail:'ЖД',sea20:'Море 20',sea40:'Море 40'};
+function updateMethodNames(methods){
+  methods.forEach(method=>methodNames[method.id]=method.label);
+  const select=document.querySelector('#methodFilter'),selected=select.value;
+  select.replaceChildren(new Option('Все типы',''),...Object.entries(methodNames).map(([id,label])=>new Option(label,id)));select.value=selected;
+}
 const rowReferences=new WeakMap(),collator=new Intl.Collator('ru',{numeric:true,sensitivity:'base'});
 const filterIds=['filter','methodFilter','originFilter','destinationFilter'];
 let sortKey='origin',sortAscending=true;
@@ -63,4 +68,4 @@ document.querySelector('#tariffForm').addEventListener('submit',async event=>{
   try{const response=await fetch('./api/admin/tariffs',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({revision,rows})});const data=await response.json();if(!response.ok)throw Error(data.error||'Не удалось сохранить');rows=data.rows;revision=data.revision;dirty=false;render();status.textContent='Сохранено. Тарифы на сайте обновлены.';}catch(error){status.textContent=error.message;}finally{saving=false;save.disabled=!dirty;document.querySelector('#addRow').disabled=false;body.querySelectorAll('input,select,textarea,button').forEach(el=>el.disabled=false);}
 });
 window.addEventListener('beforeunload',event=>{if(dirty){event.preventDefault();event.returnValue=''}});
-(async()=>{try{const response=await fetch('./api/admin/tariffs',{cache:'no-store'});if(!response.ok)throw Error('Не удалось загрузить тарифы. Проверьте вход.');const data=await response.json();rows=data.rows;revision=data.revision;loaded=true;render();status.textContent=`Маршрутов: ${rows.length}. Вы можете редактировать, добавлять и удалять строки.`;}catch(error){status.textContent=error.message;}})();
+(async()=>{try{const response=await fetch('./api/admin/tariffs',{cache:'no-store'});if(!response.ok)throw Error('Не удалось загрузить тарифы. Проверьте вход.');const data=await response.json();rows=data.rows;revision=data.revision;if(data.methods)updateMethodNames(data.methods);loaded=true;render();status.textContent=`Маршрутов: ${rows.length}. Вы можете редактировать, добавлять и удалять строки.`;}catch(error){status.textContent=error.message;}})();

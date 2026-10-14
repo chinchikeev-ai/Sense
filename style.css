@@ -180,3 +180,5 @@
 .admin-table td[data-field=comment]{min-width:270px}.admin-table textarea{min-height:82px;height:82px;padding:10px;font-size:13px;line-height:1.4}
 
 @media(max-width:760px){.home-calculator .transport-tabs,.calculator-page .transport-tabs{width:100%;margin-left:0}.home-calculator .transport-tabs button,.calculator-page .transport-tabs button{flex:1;padding:6px 8px;white-space:nowrap}}
+
+.admin-tabs{display:flex;gap:8px;margin:0 0 22px;flex-wrap:wrap}.admin-tabs button{min-height:44px;padding:12px 18px;border:1px solid var(--line);border-radius:10px;background:#fff;font-weight:700;font-size:14px}.admin-tabs button[aria-selected=true]{background:var(--blue);color:#fff;border-color:var(--blue)}.admin-methods-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin:20px 0}.admin-methods-grid h3{margin-bottom:16px}.admin-methods-grid .field{margin-bottom:12px}.admin-methods-grid textarea{min-height:100px}.transport-details [data-method-comment]{white-space:pre-line}@media(max-width:760px){.admin-methods-grid{grid-template-columns:1fr;gap:10px}.admin-methods-grid .panel{padding:16px}.admin-tabs button{flex:1;padding:10px;font-size:12px}}
