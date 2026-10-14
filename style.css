@@ -111,7 +111,7 @@
 .admin-toolbar{display:flex;gap:12px;align-items:end;flex-wrap:wrap}.admin-toolbar .field{flex:1;min-width:200px}.admin-toolbar .button{min-height:48px}
 .admin-table-wrap{overflow:auto;border:1px solid var(--line);border-radius:12px;background:#fff}.admin-table{border-collapse:collapse;width:100%;min-width:1000px}
 .admin-table th,.admin-table td{padding:10px;text-align:left;border-bottom:1px solid var(--line)}.admin-table th{font-size:12px;white-space:nowrap;background:#edf3fd}
-.admin-table input,.admin-table select{padding:10px;font-size:14px;min-height:44px}.admin-table td:nth-child(2),.admin-table td:nth-child(3){min-width:185px}.admin-table td:nth-child(4),.admin-table td:nth-child(5){min-width:125px}
+.admin-table input,.admin-table select{padding:10px;font-size:14px;min-height:44px}.admin-table td[data-field=origin],.admin-table td[data-field=destination]{min-width:185px}.admin-table td[data-field=perKg],.admin-table td[data-field=perM3]{min-width:125px}
 .admin-table .text-button{min-height:44px;color:#bf3546}.admin-page button:disabled{opacity:.5;cursor:default}.admin-page [hidden]{display:none}
 .admin-filters{display:grid;grid-template-columns:repeat(4,minmax(0,1fr)) auto;align-items:end;gap:12px;margin-top:18px;padding:16px;background:#fff;border:1px solid var(--line);border-radius:12px}.admin-filters .field{gap:6px}.admin-filters label{font-size:12px}.admin-filters .button{min-height:48px;padding:12px;font-size:12px;white-space:nowrap}.admin-filters #clearFilters{grid-column:1/-1;justify-self:start;min-height:32px}.admin-table th button{display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%;min-height:40px;padding:0;background:none;border:0;text-align:left;font-size:12px;font-weight:700}.admin-table th[aria-sort=ascending],.admin-table th[aria-sort=descending]{color:var(--blue)}.admin-table th button span{font-size:16px}.admin-table th{padding-top:4px;padding-bottom:4px}
 @media(max-width:1100px){.admin-filters{grid-template-columns:repeat(2,minmax(0,1fr))}.admin-filters #sortDirection{justify-self:start}}
@@ -175,4 +175,6 @@
  .calculator-page .quick-modal-card{padding:14px}.calculator-page .quick-modal-head{margin-bottom:10px}.calculator-page .quick-order-preview{gap:8px;padding:10px;margin-bottom:10px}
 }
 
-.admin-table td:nth-child(6){min-width:175px}
+.admin-table td[data-field=deliveryCost]{min-width:175px}
+
+.admin-table td[data-field=comment]{min-width:270px}.admin-table textarea{min-height:82px;height:82px;padding:10px;font-size:13px;line-height:1.4}
