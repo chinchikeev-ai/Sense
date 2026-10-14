@@ -7,8 +7,8 @@ let rows=[],revision=0,dirty=false,saving=false,loaded=false;
 function markDirty(){dirty=true;save.disabled=saving;status.textContent='Есть несохранённые изменения.'}
 function cellInput(row,index,key,type='text'){
   const td=document.createElement('td'),input=document.createElement('input');
-  input.type=type;input.value=row[key]??'';input.setAttribute('aria-label',({origin:'Город отправления',destination:'Город доставки',perKg:'Ставка за кг',perM3:'Ставка за м³',days:'Срок доставки'})[key]+' — строка '+(index+1));
-  if(type==='number'){input.min='0';input.max='100000000';input.step='.01';input.placeholder='По запросу'}else{input.maxLength=100;input.required=key!=='days'}
+  input.type=type;input.value=row[key]??'';input.setAttribute('aria-label',({origin:'Город отправления',destination:'Город доставки',perKg:'Ставка за кг',perM3:'Ставка за м³',deliveryCost:'Стоимость доставки',days:'Срок доставки'})[key]+' — строка '+(index+1));
+  if(type==='number'){input.min='0';input.max='100000000';input.step='.01';input.placeholder=key==='deliveryCost'?'Не указано':'По запросу'}else{input.maxLength=100;input.required=key!=='days'}
   input.addEventListener('input',()=>{row[key]=type==='number'?(input.value===''?null:Number(input.value)):input.value;markDirty()});input.addEventListener('change',refreshFilterOptions);td.append(input);return td;
 }
 function refreshFilterOptions(){
@@ -22,7 +22,7 @@ function compareRows(a,b){
   const left=a.row[sortKey],right=b.row[sortKey],emptyLeft=left==null||left==='',emptyRight=right==null||right==='';
   if(emptyLeft!==emptyRight)return emptyLeft?1:-1;
   let comparison=0;
-  if(!emptyLeft){comparison=['perKg','perM3'].includes(sortKey)?left-right:collator.compare(sortKey==='method'?methodNames[left]:left,sortKey==='method'?methodNames[right]:right)}
+  if(!emptyLeft){comparison=['perKg','perM3','deliveryCost'].includes(sortKey)?left-right:collator.compare(sortKey==='method'?methodNames[left]:left,sortKey==='method'?methodNames[right]:right)}
   return (sortAscending?comparison:-comparison)||a.index-b.index;
 }
 function updateSortLabels(){
@@ -35,7 +35,7 @@ function render(){
     rowReferences.set(tr,row);
     Object.entries(methodNames).forEach(([value,label])=>{const option=new Option(label,value);option.selected=row.method===value;select.add(option)});
     select.setAttribute('aria-label','Тип доставки — строка '+(index+1));select.addEventListener('change',()=>{row.method=select.value;markDirty()});typeCell.append(select);tr.append(typeCell);
-    tr.append(cellInput(row,index,'origin'),cellInput(row,index,'destination'),cellInput(row,index,'perKg','number'),cellInput(row,index,'perM3','number'),cellInput(row,index,'days'));
+    tr.append(cellInput(row,index,'origin'),cellInput(row,index,'destination'),cellInput(row,index,'perKg','number'),cellInput(row,index,'perM3','number'),cellInput(row,index,'deliveryCost','number'),cellInput(row,index,'days'));
     const actions=document.createElement('td'),remove=document.createElement('button');remove.type='button';remove.className='text-button';remove.textContent='Удалить';remove.setAttribute('aria-label','Удалить маршрут '+row.origin+' — '+row.destination);remove.addEventListener('click',()=>{rows.splice(index,1);markDirty();render()});actions.append(remove);tr.append(actions);body.append(tr);
   });filterRows();
 }
@@ -54,7 +54,7 @@ document.querySelectorAll('[data-sort]').forEach(button=>button.addEventListener
 function revealInvalidRows(){if([...body.querySelectorAll('input,select')].some(input=>!input.validity.valid))clearFilters()}
 save.addEventListener('click',revealInvalidRows);
 document.querySelector('#tariffForm').addEventListener('invalid',revealInvalidRows,true);
-document.querySelector('#addRow').addEventListener('click',()=>{if(!loaded||saving)return;clearFilters();const row={method:'auto',origin:'',destination:'',perKg:null,perM3:null,days:''};rows.push(row);markDirty();render();[...body.children].find(tr=>rowReferences.get(tr)===row).querySelector('input').focus()});
+document.querySelector('#addRow').addEventListener('click',()=>{if(!loaded||saving)return;clearFilters();const row={method:'auto',origin:'',destination:'',perKg:null,perM3:null,deliveryCost:null,days:''};rows.push(row);markDirty();render();[...body.children].find(tr=>rowReferences.get(tr)===row).querySelector('input').focus()});
 document.querySelector('#tariffForm').addEventListener('submit',async event=>{
   event.preventDefault();if(!loaded||saving)return;
   // A filtered-out invalid row must be visible for native form validation.

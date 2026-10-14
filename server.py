@@ -32,6 +32,9 @@ def initialize():
     with connect() as db:
         db.execute('CREATE TABLE IF NOT EXISTS settings (id INTEGER PRIMARY KEY, revision INTEGER NOT NULL)')
         db.execute('CREATE TABLE IF NOT EXISTS tariffs (method TEXT NOT NULL, origin TEXT NOT NULL, destination TEXT NOT NULL, perKg REAL, perM3 REAL, days TEXT NOT NULL, PRIMARY KEY(method, origin, destination))')
+        if 'deliveryCost' not in {row['name'] for row in db.execute('PRAGMA table_info(tariffs)')}:
+            db.execute('ALTER TABLE tariffs ADD COLUMN deliveryCost REAL')
+            db.execute('UPDATE settings SET revision=revision+1 WHERE id=1')
         if db.execute('SELECT revision FROM settings WHERE id=1').fetchone() is None:
             cities = [('Гуанчжоу', 1), ('Иу', .97), ('Шэньчжэнь', 1.05), ('Шанхай', 1.02)]
             destinations = [('Москва', 1), ('Краснодар', 1.1), ('Санкт-Петербург', 1.07), ('Новосибирск', .93), ('Челябинск', .96)]
@@ -40,7 +43,7 @@ def initialize():
                 for origin, origin_factor in cities:
                     for destination, destination_factor in destinations:
                         multiplier = factor * origin_factor * destination_factor
-                        db.execute('INSERT INTO tariffs VALUES (?,?,?,?,?,?)', (method, origin, destination, round(112 * multiplier, 2), round((167 * 112 + 4400) * multiplier, 2), days))
+                        db.execute('INSERT INTO tariffs (method,origin,destination,perKg,perM3,days) VALUES (?,?,?,?,?,?)', (method, origin, destination, round(112 * multiplier, 2), round((167 * 112 + 4400) * multiplier, 2), days))
             db.execute('INSERT INTO settings VALUES (1,1)')
 
 
@@ -64,7 +67,7 @@ def validate(payload):
             clean[key] = value.strip()
         if not clean['origin'] or not clean['destination']:
             raise ValueError('Заполните оба города.')
-        for key in ('perKg', 'perM3'):
+        for key in ('perKg', 'perM3', 'deliveryCost'):
             value = row.get(key)
             if value is not None and (type(value) not in (float, int) or not math.isfinite(value) or not 0 <= value <= 100000000):
                 raise ValueError('Ставки должны быть неотрицательными числами или пустыми.')
@@ -141,7 +144,7 @@ class Handler(BaseHTTPRequestHandler):
                     self.reply(409, {'error': 'Таблица изменена в другой вкладке. Сохраните свои правки отдельно и перезагрузите страницу.'})
                     return
                 db.execute('DELETE FROM tariffs')
-                db.executemany('INSERT INTO tariffs VALUES (:method,:origin,:destination,:perKg,:perM3,:days)', rows)
+                db.executemany('INSERT INTO tariffs (method,origin,destination,perKg,perM3,days,deliveryCost) VALUES (:method,:origin,:destination,:perKg,:perM3,:days,:deliveryCost)', rows)
                 db.execute('UPDATE settings SET revision=revision+1 WHERE id=1')
                 response = read_tariffs(db)
             self.reply(200, response)

@@ -174,3 +174,5 @@
  .calculator-page .notice{padding:10px;margin-top:10px;line-height:1.4}.calculator-page .page-nav{margin-top:12px}
  .calculator-page .quick-modal-card{padding:14px}.calculator-page .quick-modal-head{margin-bottom:10px}.calculator-page .quick-order-preview{gap:8px;padding:10px;margin-bottom:10px}
 }
+
+.admin-table td:nth-child(6){min-width:175px}
