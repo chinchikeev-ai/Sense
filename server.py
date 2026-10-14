@@ -54,7 +54,7 @@ def validate(payload):
         raise ValueError('Нужны версия таблицы и от 1 до 2000 строк.')
     result, seen = [], set()
     for row in rows:
-        if not isinstance(row, dict) or row.get('method') not in METHODS:
+        if not isinstance(row, dict) or not isinstance(row.get('method'), str) or row.get('method') not in METHODS:
             raise ValueError('Неизвестный тип доставки.')
         clean = {'method': row['method']}
         for key in ('origin', 'destination', 'days'):
@@ -98,7 +98,7 @@ class Handler(BaseHTTPRequestHandler):
                 return False
             user, password = base64.b64decode(encoded, validate=True).decode().split(':', 1)
             digest = hashlib.pbkdf2_hmac('sha256', password.encode(), bytes.fromhex(AUTH['salt']), AUTH['iterations']).hex()
-            return hmac.compare_digest(user, AUTH['user']) and hmac.compare_digest(digest, AUTH['hash'])
+            return hmac.compare_digest(user.encode(), AUTH['user'].encode()) and hmac.compare_digest(digest, AUTH['hash'])
         except (ValueError, UnicodeError):
             return False
 
