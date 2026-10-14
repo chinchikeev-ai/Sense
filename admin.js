@@ -1,5 +1,6 @@
 const body=document.querySelector('#tariffRows'),status=document.querySelector('#adminStatus'),save=document.querySelector('#saveRows');
 const methodNames={auto:'Авто',rail:'ЖД',sea20:'Море 20',sea40:'Море 40'};
+function updateCityOptions(cities){if(!cities)return;for(const kind of ['origin','destination']){const list=document.getElementById('route-'+kind+'-options');list.replaceChildren(...cities.filter(city=>city.kind===kind).map(city=>new Option(city.active?city.name:city.name+' — отключён',city.name)));}}
 function updateMethodNames(methods){
   methods.forEach(method=>methodNames[method.id]=method.label);
   const select=document.querySelector('#methodFilter'),selected=select.value;
@@ -13,6 +14,7 @@ function markDirty(){dirty=true;save.disabled=saving;status.textContent='Ест�
 function cellInput(row,index,key,type='text'){
   const td=document.createElement('td'),input=document.createElement(key==='comment'?'textarea':'input');td.dataset.field=key;
   if(key!=='comment')input.type=type;input.value=row[key]??'';input.setAttribute('aria-label',({comment:'Комментарий: срок, вес и объём',origin:'Город отправления',destination:'Город доставки',perKg:'Ставка за кг',perM3:'Ставка за м³',deliveryCost:'Стоимость доставки',days:'Срок доставки'})[key]+' — строка '+(index+1));
+  if(['origin','destination'].includes(key))input.setAttribute('list','route-'+key+'-options');
   if(key==='comment'){input.maxLength=1000;input.rows=3;input.placeholder='Срок: …; вес: …; объём: …'}else if(type==='number'){input.min='0';input.max='100000000';input.step='.01';input.placeholder=key==='deliveryCost'?'Не указано':'По запросу'}else{input.maxLength=100;input.required=key!=='days'}
   input.addEventListener('input',()=>{row[key]=type==='number'?(input.value===''?null:Number(input.value)):input.value;markDirty()});input.addEventListener('change',refreshFilterOptions);td.append(input);return td;
 }
@@ -68,4 +70,4 @@ document.querySelector('#tariffForm').addEventListener('submit',async event=>{
   try{const response=await fetch('./api/admin/tariffs',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({revision,rows})});const data=await response.json();if(!response.ok)throw Error(data.error||'Не удалось сохранить');rows=data.rows;revision=data.revision;dirty=false;render();status.textContent='Сохранено. Тарифы на сайте обновлены.';}catch(error){status.textContent=error.message;}finally{saving=false;save.disabled=!dirty;document.querySelector('#addRow').disabled=false;body.querySelectorAll('input,select,textarea,button').forEach(el=>el.disabled=false);}
 });
 window.addEventListener('beforeunload',event=>{if(dirty){event.preventDefault();event.returnValue=''}});
-(async()=>{try{const response=await fetch('./api/admin/tariffs',{cache:'no-store'});if(!response.ok)throw Error('Не удалось загрузить тарифы. Проверьте вход.');const data=await response.json();rows=data.rows;revision=data.revision;if(data.methods)updateMethodNames(data.methods);loaded=true;render();status.textContent=`Маршрутов: ${rows.length}. Вы можете редактировать, добавлять и удалять строки.`;}catch(error){status.textContent=error.message;}})();
+(async()=>{try{const response=await fetch('./api/admin/tariffs',{cache:'no-store'});if(!response.ok)throw Error('Не удалось загрузить тарифы. Проверьте вход.');const data=await response.json();rows=data.rows;revision=data.revision;if(data.methods)updateMethodNames(data.methods);updateCityOptions(data.cities);loaded=true;render();status.textContent=`Маршрутов: ${rows.length}. Вы можете редактировать, добавлять и удалять строки.`;}catch(error){status.textContent=error.message;}})();

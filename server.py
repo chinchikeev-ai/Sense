@@ -73,10 +73,86 @@ def initialize():
             db.execute('UPDATE settings SET revision=revision+1 WHERE id=1')
         if method_fields_added:
             db.execute("UPDATE delivery_methods SET days=COALESCE((SELECT MIN(days) FROM tariffs WHERE method=delivery_methods.id),'') WHERE days=''")
+        db.execute('CREATE TABLE IF NOT EXISTS cities (id INTEGER PRIMARY KEY AUTOINCREMENT, kind TEXT NOT NULL, name TEXT NOT NULL, country TEXT NOT NULL, active INTEGER NOT NULL DEFAULT 1, comment TEXT NOT NULL DEFAULT \'\', UNIQUE(kind,name))')
+        if db.execute('SELECT 1 FROM settings WHERE id=3').fetchone() is None:
+            for kind, column, country in [('origin', 'origin', 'Китай'), ('destination', 'destination', 'Россия')]:
+                db.execute(f'INSERT OR IGNORE INTO cities (kind,name,country) SELECT ?,{column},? FROM tariffs GROUP BY {column}', (kind, country))
+            db.execute('INSERT INTO settings VALUES (3,1)')
 
 
 def read_tariffs(db):
-    return {'revision': db.execute('SELECT revision FROM settings WHERE id=1').fetchone()[0], 'rows': [dict(row) for row in db.execute('SELECT * FROM tariffs ORDER BY method, origin, destination')], 'methods': read_methods(db)['rows']}
+    return {'revision': db.execute('SELECT revision FROM settings WHERE id=1').fetchone()[0], 'rows': [dict(row) for row in db.execute('SELECT * FROM tariffs ORDER BY method, origin, destination')], 'methods': read_methods(db)['rows'], 'cities': read_cities(db)['rows']}
+
+
+def read_cities(db):
+    rows = []
+    for city in db.execute('SELECT * FROM cities ORDER BY kind,name'):
+        row = dict(city)
+        column = 'origin' if row['kind'] == 'origin' else 'destination'
+        row['routes'] = db.execute(f'SELECT count(*) FROM tariffs WHERE {column}=?', (row['name'],)).fetchone()[0]
+        row['active'] = bool(row['active'])
+        rows.append(row)
+    return {'revision': db.execute('SELECT revision FROM settings WHERE id=3').fetchone()[0], 'rows': rows}
+
+
+def validate_cities(payload):
+    rows = payload.get('rows')
+    if type(payload.get('revision')) is not int or not isinstance(rows, list) or not 2 <= len(rows) <= 1000:
+        raise ValueError('Оставьте хотя бы один город отправления и один город доставки.')
+    clean_rows, names, ids = [], set(), set()
+    for row in rows:
+        if not isinstance(row, dict) or row.get('kind') not in ('origin', 'destination') or type(row.get('active')) is not bool:
+            raise ValueError('Проверьте тип города и его доступность.')
+        identifier = row.get('id')
+        if identifier is not None and (type(identifier) is not int or identifier <= 0 or identifier in ids):
+            raise ValueError('Некорректный идентификатор города.')
+        clean = {'id': identifier, 'kind': row['kind'], 'active': row['active']}
+        for key, limit in [('name', 100), ('country', 100), ('comment', 1000)]:
+            value = row.get(key, '')
+            if not isinstance(value, str) or len(value) > limit or any(ord(c) < 32 for c in value):
+                raise ValueError('Проверьте название, страну и комментарий города.')
+            clean[key] = value.strip()
+        if not clean['name'] or not clean['country']:
+            raise ValueError('Название города и страна обязательны.')
+        key = (clean['kind'], clean['name'].casefold())
+        if key in names:
+            raise ValueError('Названия городов в одном списке не должны повторяться.')
+        names.add(key)
+        if identifier is not None:
+            ids.add(identifier)
+        clean_rows.append(clean)
+    if any(not any(row['kind'] == kind and row['active'] for row in clean_rows) for kind in ('origin', 'destination')):
+        raise ValueError('Оставьте включённым хотя бы один город отправления и доставки.')
+    return clean_rows
+
+
+def write_cities(db, rows):
+    existing = {row['id']: row for row in read_cities(db)['rows']}
+    retained = {row['id'] for row in rows if row['id'] is not None}
+    if not retained.issubset(existing):
+        raise ValueError('Список городов изменился. Перезагрузите страницу.')
+    for identifier, old in existing.items():
+        if identifier not in retained:
+            if old['routes']:
+                raise ValueError(f'Город {old["name"]} используется в маршрутах. Отключите его вместо удаления.')
+            db.execute('DELETE FROM cities WHERE id=?', (identifier,))
+    tariffs_changed = False
+    for row in rows:
+        if row['id'] is None:
+            db.execute('INSERT INTO cities (kind,name,country,active,comment) VALUES (:kind,:name,:country,:active,:comment)', row)
+            continue
+        old = existing[row['id']]
+        if old['kind'] != row['kind']:
+            raise ValueError('Тип существующего города менять нельзя. Добавьте его в другой список отдельно.')
+        if old['name'] != row['name']:
+            if any(other['id'] != row['id'] and other['kind'] == row['kind'] and other['name'].casefold() == row['name'].casefold() for other in existing.values()):
+                raise ValueError('Город с таким названием уже существует.')
+            column = 'origin' if old['kind'] == 'origin' else 'destination'
+            db.execute(f'UPDATE tariffs SET {column}=? WHERE {column}=?', (row['name'], old['name']))
+            tariffs_changed = tariffs_changed or bool(old['routes'])
+        db.execute('UPDATE cities SET name=:name,country=:country,active=:active,comment=:comment WHERE id=:id', row)
+    if tariffs_changed:
+        db.execute('UPDATE settings SET revision=revision+1 WHERE id=1')
 
 
 def read_methods(db):
@@ -171,18 +247,18 @@ class Handler(BaseHTTPRequestHandler):
         path = self.path.split('?', 1)[0]
         if path == '/api/auth':
             self.reply(200 if self.authorized() else 401)
-        elif path in ('/api/tariffs', '/api/admin/tariffs', '/api/methods', '/api/admin/methods'):
+        elif path in ('/api/tariffs', '/api/admin/tariffs', '/api/methods', '/api/admin/methods', '/api/cities', '/api/admin/cities'):
             if '/admin/' in path and not self.authorized():
                 self.reply(401, {'error': 'Войдите для редактирования.'})
                 return
             with connect() as db:
                 db.execute('BEGIN')
-                self.reply(200, read_methods(db) if path.endswith('/methods') else read_tariffs(db))
+                self.reply(200, read_cities(db) if path.endswith('/cities') else read_methods(db) if path.endswith('/methods') else read_tariffs(db))
         else:
             self.reply(404, {'error': 'Страница не найдена.'})
 
     def do_PUT(self):
-        if self.path not in ('/api/admin/tariffs', '/api/admin/methods'):
+        if self.path not in ('/api/admin/tariffs', '/api/admin/methods', '/api/admin/cities'):
             self.reply(404)
             return
         if not self.authorized():
@@ -199,21 +275,27 @@ class Handler(BaseHTTPRequestHandler):
             if not isinstance(payload, dict):
                 raise ValueError('Некорректные данные.')
             editing_methods = self.path.endswith('/methods')
-            rows = validate_methods(payload) if editing_methods else validate(payload)
+            editing_cities = self.path.endswith('/cities')
+            rows = validate_cities(payload) if editing_cities else validate_methods(payload) if editing_methods else validate(payload)
             with connect() as db:
                 db.execute('BEGIN IMMEDIATE')
-                settings_id = 2 if editing_methods else 1
+                settings_id = 3 if editing_cities else 2 if editing_methods else 1
                 revision = db.execute('SELECT revision FROM settings WHERE id=?', (settings_id,)).fetchone()[0]
                 if payload['revision'] != revision:
                     self.reply(409, {'error': 'Таблица изменена в другой вкладке. Сохраните свои правки отдельно и перезагрузите страницу.'})
                     return
-                if editing_methods:
+                if editing_cities:
+                    write_cities(db, rows)
+                elif editing_methods:
                     db.executemany('UPDATE delivery_methods SET label=:label,title=:title,description=:description,comment=:comment,days=:days,totalWeight=:totalWeight,totalVolume=:totalVolume WHERE id=:id', rows)
                 else:
+                    known = {(city['kind'], city['name']) for city in db.execute('SELECT kind,name FROM cities')}
+                    if any(('origin', row['origin']) not in known or ('destination', row['destination']) not in known for row in rows):
+                        raise ValueError('Сначала добавьте новые города во вкладке «Города доставки».')
                     db.execute('DELETE FROM tariffs')
                     db.executemany('INSERT INTO tariffs (method,origin,destination,perKg,perM3,days,deliveryCost,comment) VALUES (:method,:origin,:destination,:perKg,:perM3,:days,:deliveryCost,:comment)', rows)
                 db.execute('UPDATE settings SET revision=revision+1 WHERE id=?', (settings_id,))
-                response = read_methods(db) if editing_methods else read_tariffs(db)
+                response = read_cities(db) if editing_cities else read_methods(db) if editing_methods else read_tariffs(db)
             self.reply(200, response)
         except (ValueError, json.JSONDecodeError) as exc:
             self.reply(400, {'error': str(exc)})

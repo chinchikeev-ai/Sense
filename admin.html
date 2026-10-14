@@ -4,13 +4,13 @@
   <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="robots" content="noindex,nofollow">
   <title>Тарифы доставки — Sense</title>
-  <link rel="stylesheet" href="./style.css"><script defer src="./admin.js"></script><script defer src="./methods.js"></script>
+  <link rel="stylesheet" href="./style.css"><script defer src="./admin.js"></script><script defer src="./methods.js"></script><script defer src="./cities.js"></script>
 </head>
 <body class="admin-page">
   <main class="admin-shell">
     <a class="text-button" href="./">← На сайт Sense</a>
     <div class="admin-heading"><div><p class="eyebrow">Внутренняя страница</p><h1>Тарифы доставки</h1><p class="sub">Ставки в рублях за 1 кг и за 1 м³. Изменения применяются ко всем калькуляторам после сохранения.</p></div><span class="badge">Начальные ставки — примерные</span></div>
-    <div class="admin-tabs" role="tablist" aria-label="Разделы админки"><button type="button" id="tariffsTab" role="tab" aria-selected="true" aria-controls="tariffForm">Тарифы и маршруты</button><button type="button" id="methodsTab" role="tab" aria-selected="false" aria-controls="methodsForm" tabindex="-1">Способы доставки</button></div><form id="tariffForm" role="tabpanel" aria-labelledby="tariffsTab">
+    <div class="admin-tabs" role="tablist" aria-label="Разделы админки"><button type="button" id="tariffsTab" role="tab" aria-selected="true" aria-controls="tariffForm">Тарифы и маршруты</button><button type="button" id="methodsTab" role="tab" aria-selected="false" aria-controls="methodsForm" tabindex="-1">Способы доставки</button><button type="button" id="citiesTab" role="tab" aria-selected="false" aria-controls="citiesForm" tabindex="-1">Города доставки</button></div><form id="tariffForm" role="tabpanel" aria-labelledby="tariffsTab">
       <div class="admin-toolbar">
         <div class="field"><label for="filter">Поиск маршрута</label><input id="filter" type="search" placeholder="Город или тип доставки"></div>
         <button class="button secondary" id="addRow" type="button">+ Добавить маршрут</button>
@@ -30,6 +30,14 @@
       <p class="fine">Пустая ставка означает «По запросу». Калькулятор показывает оба варианта расчёта и большую сумму как предварительный ориентир.</p>
     </form>
     <form id="methodsForm" role="tabpanel" aria-labelledby="methodsTab" hidden><h2>Способы доставки</h2><p class="sub">Срок, общая масса, общий объём, названия и описания сохраняются для каждого способа и отображаются в калькуляторе. Тарифы маршрутов редактируются на соседней вкладке.</p><div id="methodCards" class="admin-methods-grid"></div><button class="button" id="saveMethods" type="submit" disabled>Сохранить способы доставки</button><p id="methodsStatus" role="status" aria-live="polite">Загружаем способы доставки…</p></form>
+    <datalist id="route-origin-options"></datalist><datalist id="route-destination-options"></datalist>
+    <form id="citiesForm" role="tabpanel" aria-labelledby="citiesTab" hidden>
+      <h2>Города доставки</h2><p class="sub">Города отправления и назначения для калькулятора и тарифов. Переименование обновляет связанные маршруты. Города с маршрутами можно отключить на сайте; удаление доступно для неиспользуемых.</p>
+      <div class="admin-toolbar"><div class="field"><label for="citySearch">Поиск города</label><input id="citySearch" type="search" placeholder="Название, страна или комментарий"></div><button class="button" id="saveCities" type="submit" disabled>Сохранить города</button></div>
+      <p id="citiesStatus" role="status" aria-live="polite">Загружаем города…</p><p class="fine" id="cityCount" aria-live="polite"></p>
+      <section class="city-section"><div class="city-section-head"><h3>Отправление</h3><button type="button" class="button secondary" data-add-city="origin">+ Город отправления</button></div><div class="admin-table-wrap"><table class="city-table"><thead><tr><th scope="col">Город</th><th scope="col">Страна</th><th scope="col">Комментарий</th><th scope="col">Доступность</th><th scope="col">Маршрутов</th><th scope="col">Действия</th></tr></thead><tbody id="cities-origin"></tbody></table></div></section>
+      <section class="city-section"><div class="city-section-head"><h3>Доставка</h3><button type="button" class="button secondary" data-add-city="destination">+ Город доставки</button></div><div class="admin-table-wrap"><table class="city-table"><thead><tr><th scope="col">Город</th><th scope="col">Страна</th><th scope="col">Комментарий</th><th scope="col">Доступность</th><th scope="col">Маршрутов</th><th scope="col">Действия</th></tr></thead><tbody id="cities-destination"></tbody></table></div></section>
+    </form>
   </main>
 </body>
 </html>
