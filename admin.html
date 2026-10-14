@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="robots" content="noindex,nofollow">
+  <title>Тарифы доставки — Sense</title>
+  <link rel="stylesheet" href="./style.css"><script defer src="./admin.js"></script>
+</head>
+<body class="admin-page">
+  <main class="admin-shell">
+    <a class="text-button" href="./">← На сайт Sense</a>
+    <div class="admin-heading"><div><p class="eyebrow">Внутренняя страница</p><h1>Тарифы доставки</h1><p class="sub">Ставки в рублях за 1 кг и за 1 м³. Изменения применяются ко всем калькуляторам после сохранения.</p></div><span class="badge">Начальные ставки — примерные</span></div>
+    <form id="tariffForm">
+      <div class="admin-toolbar">
+        <div class="field"><label for="filter">Поиск маршрута</label><input id="filter" type="search" placeholder="Город или тип доставки"></div>
+        <button class="button secondary" id="addRow" type="button">+ Добавить маршрут</button>
+        <button class="button" id="saveRows" type="submit" disabled>Сохранить изменения</button>
+      </div>
+      <p id="adminStatus" role="status" aria-live="polite">Загружаем таблицу…</p>
+      <div class="admin-table-wrap"><table class="admin-table"><thead><tr><th scope="col">Тип доставки</th><th scope="col">Город отправления</th><th scope="col">Город доставки</th><th scope="col">₽ / кг</th><th scope="col">₽ / м³</th><th scope="col">Срок, дней</th><th scope="col">Действия</th></tr></thead><tbody id="tariffRows"></tbody></table></div>
+      <p class="fine">Пустая ставка означает «По запросу». Калькулятор показывает оба варианта расчёта и большую сумму как предварительный ориентир.</p>
+    </form>
+  </main>
+</body>
+</html>
