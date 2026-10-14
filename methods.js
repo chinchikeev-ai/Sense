@@ -6,6 +6,14 @@ function renderMethods(){
   methodRows.forEach(method=>{
     const card=document.createElement('section');card.className='panel';
     const heading=document.createElement('h3');heading.textContent=method.label;card.append(heading);
+    const parameters=document.createElement('div');parameters.className='method-parameters';
+    for(const [key,label] of [['days','Срок доставки, дней'],['totalWeight','Общая масса, кг'],['totalVolume','Общий объём, м³']]){
+      const field=document.createElement('div');field.className='field';const title=document.createElement('label'),input=document.createElement('input');
+      input.id='method-'+method.id+'-'+key;title.htmlFor=input.id;title.textContent=label;input.value=method[key]??'';
+      if(key==='days'){input.maxLength=100;input.placeholder='Например, 18–25'}else{input.type='number';input.min='0';input.max='1000000000';input.step='any';input.placeholder='Не указано'}
+      input.addEventListener('input',()=>{method[key]=key==='days'?input.value:input.value===''?null:Number(input.value);methodsDirty=true;saveMethods.disabled=methodsSaving;methodsStatus.textContent='Есть несохранённые изменения.'});field.append(title,input);parameters.append(field);
+    }
+    card.append(parameters);
     for(const [key,label,max] of [['label','Название кнопки и пункта списка',40],['title','Заголовок',120],['description','Описание доставки',2000],['comment','Комментарий: срок, вес и объём',1000]]){
       const field=document.createElement('div');field.className='field';const title=document.createElement('label'),input=document.createElement(['description','comment'].includes(key)?'textarea':'input');
       input.id='method-'+method.id+'-'+key;title.htmlFor=input.id;title.textContent=label;input.value=method[key]||'';input.maxLength=max;input.required=['label','title'].includes(key);

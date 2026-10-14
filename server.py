@@ -38,8 +38,16 @@ def initialize():
     with connect() as db:
         db.execute('CREATE TABLE IF NOT EXISTS settings (id INTEGER PRIMARY KEY, revision INTEGER NOT NULL)')
         db.execute('CREATE TABLE IF NOT EXISTS delivery_methods (id TEXT PRIMARY KEY, label TEXT NOT NULL, title TEXT NOT NULL, description TEXT NOT NULL, comment TEXT NOT NULL)')
-        db.executemany('INSERT OR IGNORE INTO delivery_methods VALUES (?,?,?,?,?)', METHOD_DEFAULTS)
+        method_fields_added = False
+        method_columns = {row['name'] for row in db.execute('PRAGMA table_info(delivery_methods)')}
+        for name, definition in [('days', "TEXT NOT NULL DEFAULT ''"), ('totalWeight', 'REAL'), ('totalVolume', 'REAL')]:
+            if name not in method_columns:
+                db.execute(f'ALTER TABLE delivery_methods ADD COLUMN {name} {definition}')
+                method_fields_added = True
+        db.executemany('INSERT OR IGNORE INTO delivery_methods (id,label,title,description,comment) VALUES (?,?,?,?,?)', METHOD_DEFAULTS)
         db.execute('INSERT OR IGNORE INTO settings VALUES (2,1)')
+        if method_fields_added:
+            db.execute('UPDATE settings SET revision=revision+1 WHERE id=2')
         db.execute('CREATE TABLE IF NOT EXISTS tariffs (method TEXT NOT NULL, origin TEXT NOT NULL, destination TEXT NOT NULL, perKg REAL, perM3 REAL, days TEXT NOT NULL, PRIMARY KEY(method, origin, destination))')
         if 'deliveryCost' not in {row['name'] for row in db.execute('PRAGMA table_info(tariffs)')}:
             db.execute('ALTER TABLE tariffs ADD COLUMN deliveryCost REAL')
@@ -63,6 +71,8 @@ def initialize():
                 db.execute("INSERT OR IGNORE INTO tariffs (method,origin,destination,perKg,perM3,days,deliveryCost,comment) SELECT ?,origin,destination,perKg,perM3,days,deliveryCost,comment FROM tariffs WHERE method='sea'", (method,))
             db.execute("DELETE FROM tariffs WHERE method='sea'")
             db.execute('UPDATE settings SET revision=revision+1 WHERE id=1')
+        if method_fields_added:
+            db.execute("UPDATE delivery_methods SET days=COALESCE((SELECT MIN(days) FROM tariffs WHERE method=delivery_methods.id),'') WHERE days=''")
 
 
 def read_tariffs(db):
@@ -82,13 +92,18 @@ def validate_methods(payload):
         if not isinstance(row, dict) or not isinstance(row.get('id'), str) or row['id'] not in METHODS or row['id'] in seen:
             raise ValueError('Проверьте способы доставки.')
         clean = {'id': row['id']}
-        for key, limit in [('label', 40), ('title', 120), ('description', 2000), ('comment', 1000)]:
+        for key, limit in [('label', 40), ('title', 120), ('description', 2000), ('comment', 1000), ('days', 100)]:
             value = row.get(key, '')
             if not isinstance(value, str) or len(value) > limit or any(ord(c) < 32 and c not in '\n\r' for c in value):
                 raise ValueError('Проверьте длину и содержание текстов.')
             clean[key] = value.strip()
         if not clean['label'] or not clean['title']:
             raise ValueError('Название и заголовок обязательны.')
+        for key in ('totalWeight', 'totalVolume'):
+            value = row.get(key)
+            if value is not None and (type(value) not in (float, int) or not math.isfinite(value) or not 0 <= value <= 1000000000):
+                raise ValueError('Общая масса и объём должны быть неотрицательными числами или пустыми.')
+            clean[key] = value
         seen.add(row['id'])
         result.append(clean)
     return result
@@ -193,7 +208,7 @@ class Handler(BaseHTTPRequestHandler):
                     self.reply(409, {'error': 'Таблица изменена в другой вкладке. Сохраните свои правки отдельно и перезагрузите страницу.'})
                     return
                 if editing_methods:
-                    db.executemany('UPDATE delivery_methods SET label=:label,title=:title,description=:description,comment=:comment WHERE id=:id', rows)
+                    db.executemany('UPDATE delivery_methods SET label=:label,title=:title,description=:description,comment=:comment,days=:days,totalWeight=:totalWeight,totalVolume=:totalVolume WHERE id=:id', rows)
                 else:
                     db.execute('DELETE FROM tariffs')
                     db.executemany('INSERT INTO tariffs (method,origin,destination,perKg,perM3,days,deliveryCost,comment) VALUES (:method,:origin,:destination,:perKg,:perM3,:days,:deliveryCost,:comment)', rows)
