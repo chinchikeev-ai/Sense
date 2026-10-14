@@ -207,3 +207,29 @@
 
 /* Independent balance card with preliminary result on its right. */
 .home-analysis-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:20px;align-items:start}.home-analysis-grid .home-result{grid-column:auto}.home-analysis-grid #load-balance.panel{padding:22px;margin:0;max-width:none;min-height:0!important;border-radius:18px}.home-analysis-grid #load-balance .section-head{margin-bottom:12px}.home-analysis-grid #load-balance .eyebrow{margin-bottom:6px}.home-analysis-grid #load-balance h2{font-size:26px;margin-bottom:6px}.home-analysis-grid #load-balance .sub{font-size:12px;line-height:1.4}.home-analysis-grid #load-balance .text-button{display:none}.home-analysis-grid .balance-panel{grid-template-columns:1fr;padding:10px;gap:10px}@media(max-width:760px){.home-analysis-grid{grid-template-columns:1fr;gap:10px}.home-analysis-grid #load-balance.panel{padding:12px}.home-analysis-grid #load-balance h2{font-size:24px}}
+
+/* Cargo accordion: product/customs on one row, weight/volume on next row. */
+.cargo-item .cargo-item-head{margin-bottom:0;display:flex;align-items:center;gap:10px}
+.cargo-item-toggle{appearance:none;display:flex;align-items:center;justify-content:space-between;flex:1;min-width:0;gap:12px;padding:4px 0;border:0;background:none;text-align:left;color:var(--ink);cursor:pointer}
+.cargo-item-heading-group{display:flex;flex-direction:column;min-width:0;gap:3px}
+.cargo-item-title{font-size:15px;font-weight:700;overflow-wrap:anywhere}
+.cargo-item-meta{font-size:12px;color:var(--muted);font-weight:500}
+.cargo-item-chevron{color:var(--blue);font-size:22px;line-height:1;transition:transform .2s}
+.cargo-item-toggle[aria-expanded=true] .cargo-item-chevron{transform:rotate(180deg)}
+.cargo-item-content{margin-top:18px}
+.cargo-item-content[hidden]{display:none!important}
+.cargo-item .cargo-item-fields{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,1fr);column-gap:14px;row-gap:14px}
+.cargo-item .cargo-item-fields .cargo-field{grid-column:auto;min-width:0}
+.cargo-item .cargo-item-fields .cargo-field-weight,.cargo-item .cargo-item-fields .cargo-field-volume{grid-row:2}
+.cargo-item .cargo-item-fields input{width:100%;min-width:0}
+.cargo-item .cargo-insight{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;line-height:1.4}
+.cargo-item .cargo-insight>div{min-width:0;display:flex;flex-direction:column;gap:5px}
+.cargo-item .cargo-insight small{font-size:11px;color:#58759e}
+.cargo-item .cargo-insight strong{font-size:13px;color:var(--ink)}
+.cargo-extra-fields{display:grid;grid-template-columns:1fr;gap:4px}
+.cargo-item-actions{display:flex;justify-content:flex-end;margin-top:15px}
+.cargo-item-actions .button{padding:11px 22px}
+.cargo-item .cargo-remove{flex-shrink:0;font-size:12px}
+.cargo-item.is-collapsed{background:#fbfdff}
+.cargo-item-toggle:focus-visible{outline:2px solid var(--blue);outline-offset:5px;border-radius:4px}
+@media(max-width:460px){.cargo-item .cargo-item-fields{grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:10px}.cargo-item .cargo-item-fields .cargo-field label{font-size:11px}.cargo-item .cargo-insight{gap:8px}}
